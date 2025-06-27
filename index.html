@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro Facial</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('../static/unnamed.png') no-repeat center center fixed;
+      background-size: cover;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 400px;
+      margin: 5vh auto;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    video, canvas {
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    @media (max-width: 480px) {
+      .container {
+        margin: 20px;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Registro Facial</h2>
+    <input type="text" id="cedula" placeholder="Número de cédula">
+    <input type="text" id="nombre" placeholder="Nombre">
+    <input type="text" id="apellido" placeholder="Apellido">
+    <select id="rol">
+      <option value="Estudiante">Estudiante</option>
+      <option value="Profesor">Profesor</option>
+    </select>
+    <video id="video" autoplay></video>
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <button onclick="registrar()">Registrar</button>
+    <button onclick="verificar()">Verificar Ingreso</button>
+    <p id="mensaje"></p>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const mensaje = document.getElementById("mensaje");
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert("No se pudo acceder a la cámara."));
+
+    function capturarImagen() {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/jpeg");
+    }
+
+    function registrar() {
+      const cedula = document.getElementById("cedula").value;
+      const nombre = document.getElementById("nombre").value;
+      const apellido = document.getElementById("apellido").value;
+      const rol = document.getElementById("rol").value;
+      const imagen = capturarImagen();
+
+      if (!cedula || !nombre || !apellido) {
+        mensaje.textContent = "Por favor complete todos los campos.";
+        mensaje.style.color = "red";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("cedula", cedula);
+      formData.append("nombre", nombre);
+      formData.append("apellido", apellido);
+      formData.append("rol", rol);
+      formData.append("image", imagen);
+
+      fetch("/register", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+          mensaje.textContent = data.message;
+          mensaje.style.color = data.status === "success" ? "green" : "red";
+        });
+    }
+
+    function verificar() {
+      const imagen = capturarImagen();
+      const formData = new FormData();
+      formData.append("image", imagen);
+
+      fetch("/verify", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+          mensaje.textContent = data.message;
+          mensaje.style.color = data.status === "success" ? "green" : "red";
+        });
+    }
+  </script>
+</body>
+</html>
